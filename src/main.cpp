@@ -1060,7 +1060,8 @@ int main(int argc, char *argv[])
     int retval;
 
     time_t UpdateT1, UpdateT2;
-    time (&UpdateT1);
+    //time (&UpdateT1);
+    UpdateT1 = 0;
 
     while (1)
     {
@@ -1128,6 +1129,9 @@ int main(int argc, char *argv[])
                 uc buf[sizeof(CNetMessageBody)];
                 uc* p = xmes.encode(buf);
                 smp.SendPacket(buf, p-buf);
+
+                sprintf(str,"settime %d %d %d %d %d %d\n",T.tm_mday,T.tm_mon+1,(T.tm_year+1900),T.tm_hour,T.tm_min,T.tm_sec);
+		Loger(str);
             }
         }
     }
