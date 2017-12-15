@@ -62,7 +62,7 @@ void CSMPClient::OnReceive(char *buffer, int len)
             }
             if (recvBuf[p] == 0xD)
             {
-                if (!strncmp((char *)(recvBuf + done), "BINARYMODE-OK", 10+1+2))
+                if (!strncmp((char *)(recvBuf + done), "BINARYMODE-OK", 10 + 1 + 2))
                 {
                     fBinaryRead = true;
                     CSMPMessage *mes = new CSMPMessage(SMPMESCLIENT_BINARYMODE_OK);
@@ -73,7 +73,7 @@ void CSMPClient::OnReceive(char *buffer, int len)
                     else
                         Loger("Warning: Out of memory!\n");
                 }
-                if (!strncmp((char *)(recvBuf + done), "BINARYMODE-ER", 10+1+2))
+                if (!strncmp((char *)(recvBuf + done), "BINARYMODE-ER", 10 + 1 + 2))
                 {
                     fBinaryRead = true;
                     CSMPMessage *mes = new CSMPMessage(SMPMESCLIENT_BINARYMODE_ER);
@@ -133,15 +133,15 @@ void CSMPClient::OnReceive(char *buffer, int len)
                 recvLen = 0;
         }
     }
-
 }
 
 void CSMPClient::ReceivePacket (BYTE *data, short len )
 {
-	if (!fBinaryRead)
-	{
+    if (!fBinaryRead)
+    {
         if (len < 0)
             return;
+
         CSMPMessage* mes = (CSMPMessage*) new BYTE[sizeof(CSMPMessage) + 1 + len];
         if(mes)
         {
@@ -153,11 +153,12 @@ void CSMPClient::ReceivePacket (BYTE *data, short len )
         }
         else
             Loger("Warning: Out of memory!\n");
-	}
-	else
-	{
+    }
+    else
+    {
         if (len <= 0)
             return;
+
         CSMPMessage* mes = (CSMPMessage*) new BYTE[sizeof(CSMPMessage) + len];
         if(mes)
         {
@@ -168,7 +169,7 @@ void CSMPClient::ReceivePacket (BYTE *data, short len )
         }
         else
             Loger("Warning: Out of memory!\n");
-	}
+    }
 }
 
 void CSMPClient::SendPacket ( BYTE* data, short len )
@@ -178,6 +179,7 @@ void CSMPClient::SendPacket ( BYTE* data, short len )
         struct timeval tv;
         fd_set wset;
         int retval;
+        int count = 0;
         do 
         {
             tv.tv_sec = 1;
@@ -186,13 +188,15 @@ void CSMPClient::SendPacket ( BYTE* data, short len )
             FD_SET(Scomm_fd, &wset);
             if ((retval = select(Scomm_fd + 1, NULL, &wset, NULL, &tv)) > 0) 
             {
-                int ERROR=-1;
+                int ERROR = -1;
                 socklen_t opt_size = sizeof(ERROR);
                 getsockopt(Scomm_fd, SOL_SOCKET, SO_ERROR, &ERROR, &opt_size);
                 if(ERROR == 0)
                 {
-                    write(Scomm_fd, &len, 2);
-                    write(Scomm_fd, data, len);
+                    char buff[MAXSMPPACKET + 2];
+                    memcpy(buff, &len, sizeof(short));
+                    memcpy(buff + sizeof(short), data, len);
+                    write(Scomm_fd, buff, sizeof(short) + len);
                 }
                 else
                 {
@@ -207,7 +211,8 @@ void CSMPClient::SendPacket ( BYTE* data, short len )
                 OnClose();
                 break;
             }
-        } while(retval <= 0);
+            count++;
+        } while (retval < 0 && count < 2);
     }
 }
 
@@ -218,6 +223,7 @@ void CSMPClient::SendString ( char* str )
         struct timeval tv;
         fd_set wset;
         int retval;
+        int count = 0;
         do 
         {
             tv.tv_sec = 1;
@@ -226,15 +232,12 @@ void CSMPClient::SendString ( char* str )
             FD_SET(Scomm_fd, &wset);
             if ((retval = select(Scomm_fd + 1, NULL, &wset, NULL, &tv)) > 0) 
             {
-                int ERROR=-1;
+                int ERROR = -1;
                 socklen_t opt_size = sizeof(ERROR);
                 getsockopt(Scomm_fd, SOL_SOCKET, SO_ERROR,&ERROR, &opt_size);
                 if(ERROR == 0)
                 {
-                    //char buff[MAXSMPPACKET + 2];
-                    //memcpy(buff,str, strlen(str));
-                    //memcpy(buff + strlen(str), "\r\n",2);
-                    write(Scomm_fd, str, strlen(str)/*+2*/);
+                    write(Scomm_fd, str, strlen(str));
                 }
                 else
                 {
@@ -249,13 +252,14 @@ void CSMPClient::SendString ( char* str )
                 OnClose();
                 break;
             }
-        } while(retval <= 0);
+            count++;
+        } while (retval < 0 && count < 2);;
     }
 }
 
 void CSMPClient::SwitchBinary (const char *password)
 {
-    char str[10+1+6+strlen("\r\n")+1];
+    char str[10 + 1 + 6 + strlen("\r\n") + 1];
     sprintf(str, "BINARYMODE-%s\r\n", strlen(password) == 6 ? password : "100100");
     if (!fBinaryWrite)
     {

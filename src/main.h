@@ -48,12 +48,13 @@
 #define TCP_KEEPINTVL TCPCTL_KEEPINTVL
 #endif
 
+#include <config.h>
 #include "client.h"
-#include "include/type.h"
-#include "include/netmes.h"
-#include "include/monmessage.h"
-#include "include/unipar.h"
-#include "parse.h"
+#include "type.h"
+#include "netmes.h"
+#include "monmessage.h"
+#include "unipar.h"
+#include "parser.h"
 
 #define TIMER_SEND_REGISTER_MONITOR_VALUE 100
 

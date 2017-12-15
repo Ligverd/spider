@@ -17,6 +17,7 @@
 #ifndef PARSE_H
 #define PARSE_H
 #include <netinet/in.h>
+
 class CParser
 {
     int CheckDec(const char *str);
@@ -28,11 +29,13 @@ public:
     char* sFileNameBase;
     char* sPassword;
     char* sLogFile;
+    unsigned int nLogFileSize;
     in_addr_t ScommPort;
     in_addr_t ServerPort;
     int rotation;
     bool fDaemon;
     unsigned int nTimeUpdateMin;
+
     int ParseCStringParams (int argc, char *argv[]);
     int FillMainParams (void);
     CParser();

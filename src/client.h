@@ -1,7 +1,7 @@
 #ifndef _CLIENT_H
 #define _CLIENT_H
 
-#include "include/type.h"
+#include "type.h"
 
 #define WM_COMMAND 0x100
 

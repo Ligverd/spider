@@ -1,7 +1,7 @@
 #ifndef _NETMES_H_
 #define _NETMES_H_
 
-#include <include/type.h>
+#include <type.h>
 
 #define MAX_MODULE 64
 
@@ -168,15 +168,15 @@ public:
         } multi;
     } un;
 
-#if || defined(__GNUC__) || defined(WIN32)
+
     CNetMessage() {
         memset(this, 0x00, sizeof(*this));
     }
     const uc* decode(const uc* stream, int& size);
     uc* encode(uc* stream);
-#endif
 
-#ifndef ARM
+
+#ifndef ARMLINUX
     short nHead( void ) { return  7 + (dst.nMod == 0xFF ? sizeof(CNetSetPoint) : 0); }
     BYTE* pData( void ) { return  dst.nMod == 0xFF ? &un.multi.data[0] : &un.single.data[0]; }
 #endif
@@ -186,7 +186,7 @@ public:
     void fillNear(TModule srcModule);
 };
 
-#if || defined(__GNUC__) || defined(WIN32)
+
 const   int     Max_NetMessageDataSize =  2*100 + sizeof(BYTE) + sizeof(TCallID) + sizeof(BYTE);
 class  CNetMessageBody : public CNetMessage 
 {
@@ -204,7 +204,7 @@ public:
     uc* encode(uc* stream);
     const uc* input(const uc* stream, int size);
 };
-#endif
+
 
 
 #pragma pack (pop)

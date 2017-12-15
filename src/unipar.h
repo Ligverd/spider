@@ -1,7 +1,7 @@
 #ifndef  __UNIPAR_H__
 #define  __UNIPAR_H__
 
-#include <include/type.h>
+#include <type.h>
 
 namespace UniN {
 struct Number;

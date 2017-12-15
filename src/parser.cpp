@@ -1,5 +1,9 @@
 #include "main.h"
 
+#define RETURNERR(x) {Loger((x)); return -1;};
+void Loger(const char* str);
+void Logerf(const char *format, ...);
+
 CParser::CParser()
 {
     sScommIp = NULL;
@@ -7,8 +11,9 @@ CParser::CParser()
     sFileNameBase = NULL;
     sPassword = NULL;
     sLogFile = NULL;
-    in_addr_t ScommPort = 10001;
-    in_addr_t ServerPort = 0;
+    nLogFileSize = 20;
+    ScommPort = 10001;
+    ServerPort = 0;
     rotation = 1;
     nTimeUpdateMin = 0;
     fDaemon = false;
@@ -79,7 +84,7 @@ int CParser::ParseCStringParams (int argc, char *argv[])
         return -1;
     }
     int i;
-    for( i = 1; i<argc; i++)
+    for( i = 1; i < argc; i++ )
     {
         if(!strcmp(argv[i],"-scommip"))
         {
@@ -91,14 +96,14 @@ int CParser::ParseCStringParams (int argc, char *argv[])
                     sScommIp = (char*)malloc(strlen(argv[i])+1);
                     if (!sScommIp)
                     {
-                        printf("Out of memory!\n");
+                        Loger("Out of memory!\n");
                         return -1;
                     }
                     strcpy(sScommIp, argv[i]);
                 }
                 else
                 {
-                    printf("Scomm ip address error!\n");
+                    Loger("Scomm ip address error!\n");
                     PrintHelp();
                     return -1;
                 }
@@ -112,10 +117,28 @@ int CParser::ParseCStringParams (int argc, char *argv[])
                 sLogFile = (char*)malloc(strlen(argv[i])+1);
                 if (!sLogFile)
                 {
-                    printf("Out of memory!\n");
+                    Loger("Out of memory!\n");
                     return -1;
                 }
                 strcpy(sLogFile, argv[i]);
+            }
+        }
+        else if(!strcmp(argv[i],"-logsize"))
+        {
+            i++;
+            if (i < argc)
+            {
+                if (CheckDec(argv[i]))
+                {
+                    unsigned int sz = atoi(argv[i]);
+                    if(sz && sz <= 100)
+                        nLogFileSize = sz;
+                }
+                else
+                {
+                    Loger("Parser: Incorrect log file size value!\n");
+                    return -1;
+                }
             }
         }
         else if(!strcmp(argv[i],"-outdir"))
@@ -128,7 +151,7 @@ int CParser::ParseCStringParams (int argc, char *argv[])
                     sOutDir = (char*)malloc(strlen(argv[i])+1);
                     if (!sOutDir)
                     {
-                        printf("Out of memory!\n");
+                        Loger("Out of memory!\n");
                         return -1;
                     }
                     strcpy(sOutDir, argv[i]);
@@ -145,7 +168,7 @@ int CParser::ParseCStringParams (int argc, char *argv[])
                     sFileNameBase = (char*)malloc(strlen(argv[i])+1);
                     if (!sFileNameBase)
                     {
-                        printf("Out of memory!\n");
+                        Loger("Out of memory!\n");
                         return -1;
                     }
                     strcpy(sFileNameBase, argv[i]);
@@ -163,7 +186,7 @@ int CParser::ParseCStringParams (int argc, char *argv[])
                     sOutDir = (char*)malloc(len + 1);
                     if (!sOutDir)
                     {
-                        printf("Out of memory!\n");
+                        Loger("Out of memory!\n");
                         return -1;
                     }
                     sOutDir[len] = 0;
@@ -172,7 +195,7 @@ int CParser::ParseCStringParams (int argc, char *argv[])
                     sFileNameBase = (char*)malloc(strlen(strrchr( argv[i], (int)'/')+1)+1);
                     if (!sFileNameBase)
                     {
-                        printf("Out of memory!\n");
+                        Loger("Out of memory!\n");
                         return -1;
                     }
                     strcpy(sFileNameBase, strrchr( argv[i], (int)'/')+1);
@@ -187,7 +210,7 @@ int CParser::ParseCStringParams (int argc, char *argv[])
                 sPassword = (char*)malloc(strlen(argv[i])+1);
                 if (!sPassword)
                 {
-                        printf("Out of memory!\n");
+                        Loger("Out of memory!\n");
                         return -1;
                 }
                 strcpy(sPassword, argv[i]);
@@ -242,29 +265,40 @@ int CParser::ParseCStringParams (int argc, char *argv[])
             fDaemon = true;
         }
     }
+
+    if (!sOutDir)
+    {
+        Loger("No output directory!\n");
+        PrintHelp();
+        return -1;
+    }
+    if (!sLogFile)
+    {
+        sLogFile = (char*)malloc(strlen(sOutDir) + strlen("/spider.log") + 1);
+        if (!sLogFile)
+        {
+            Loger("Out of memory!\n");
+            return -1;
+        }
+        strcpy(sLogFile,sOutDir);
+        strcat(sLogFile,"/spider.log");
+    }
+
     return 1;
 }
 
 int CParser::FillMainParams (void)
 {
-    if (sScommIp) 
-    {
-        printf("Scomm ip address:%s\n", sScommIp);
-    }
-    else
-    {
-        printf("No scomm ip address!\n");
-        PrintHelp();
-        return -1;
-    }
+    Logerf("Output directory:%s\n", sOutDir);
+    Logerf("Logfile:%s\n", sLogFile);
 
-    if (sOutDir) 
+    if (sScommIp)
     {
-        printf("Output directory:%s\n", sOutDir);
+        Logerf("Scomm ip address:%s\n", sScommIp);
     }
     else
     {
-        printf("No output directory!\n");
+        Loger("No scomm ip address!\n");
         PrintHelp();
         return -1;
     }
@@ -274,72 +308,59 @@ int CParser::FillMainParams (void)
         sFileNameBase = (char*)malloc(strlen("comlog")+1);
         if (!sFileNameBase)
         {
-            printf("Out of memory!\n");
+            Loger("Out of memory!\n");
             return -1;
         }
         strcpy(sFileNameBase, "comlog");
     }
-    printf("File name base:%s\n",sFileNameBase);
+    Logerf("File name base:%s\n", sFileNameBase);
 
     if (!sPassword)
     {
         sPassword = (char*)malloc(strlen("default")+1);
         if (!sPassword)
         {
-            printf("Out of memory!\n");
+            Loger("Out of memory!\n");
             return -1;
         }
         strcpy(sPassword, "default");
     }
-    printf("Password:%s\n",sPassword);
+    Logerf("Password:%s\n", sPassword);
 
     if(!ScommPort) ScommPort = 10001;
-    printf("Scomm port:%d\n",ScommPort);
+    Logerf("Scomm port:%d\n", ScommPort);
 
     if(!ServerPort) ServerPort = ScommPort + 1;
-    printf("Server port:%d\n", ServerPort);
+    Logerf("Server port:%d\n", ServerPort);
 
     switch(rotation)
     {
         case ROTATION_DAY:
-            printf("Rotation:day\n");
+            Loger("Rotation:day\n");
         break;
         case ROTATION_DECADE:
-            printf("Rotation:decade\n");
+            Loger("Rotation:decade\n");
         break;
         case ROTATION_MONTH:
-            printf("Rotation:month\n");
+            Loger("Rotation:month\n");
         break;
         case ROTATION_REALTIME:
-            printf("Rotation:realtime\n");
+            Loger("Rotation:realtime\n");
         break;
         default:
         {
-            printf("Rotation unknown!\n");
+            Loger("Rotation unknown!\n");
             PrintHelp();
             return -1;
         }
     }
 
-    if (!sLogFile)
-    {
-        sLogFile = (char*)malloc(strlen(sOutDir)+strlen("/spider.log")+1);
-        if (!sLogFile)
-        {
-            printf("Out of memory!\n");
-            return -1;
-        }
-        strcpy(sLogFile,sOutDir);
-        strcat(sLogFile,"/spider.log");
-    }
-    printf("Logfile:%s\n", sLogFile);
-
     if(nTimeUpdateMin)
     {
-        printf("TimeUpdate:%u min\n", nTimeUpdateMin);
+        Logerf("TimeUpdate:%u min\n", nTimeUpdateMin);
     }
-
-    if (fDaemon) printf("Daemon mode!\n");
+    Logerf("Log file size:%d MB\n", nLogFileSize);
+    if (fDaemon) Loger("Daemon mode!\n");
     return 1;
 }
 
@@ -349,7 +370,7 @@ printf("\nNAME\n\
 \tspider - tarification collector from ATS M-200\n\
 \nSYNOPSIS\n\
 \tspider -scommip X.X.X.X -outdir dir [-scommport N] [-serverport P]\n\
-\t[-filename name] [-rotation r] [-password pppppp] [-logfile path] [-d]\n\n\
+\t[-filename name] [-rotation r] [-password pppppp] [-logfile path] [logsize Y] [-d]\n\n\
 \tX.X.X.X - scomm IP address. X = 0..255\n\
 \tdir - tfs and txt files directory.\n\
 \tN - scomm TCP port. N = 0..65535 (default N = 10001)\n\
@@ -358,6 +379,7 @@ printf("\nNAME\n\
 \tname - tfs and txt filename base. (default name = comlog)\n\
 \tpppppp - password for ATS binary mode. p = 0..9 (default pppppp = 100100)\n\
 \tpath - path for spider logfile. (default path = dir/spider.log)\n\
+\tY - logfile max size in megabytes. (default 20 MB)\n\
 \t-d - daemon mode.\n\
 \nEXAMPLES\n\
 \tUsing in daemon mode:\n\

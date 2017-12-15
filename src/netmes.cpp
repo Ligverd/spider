@@ -1,4 +1,4 @@
-#include  <include/netmes.h>
+#include  <netmes.h>
 //#include  <include/lib.h>
 
 
@@ -131,7 +131,7 @@ const uc* CNetMessageBody::decode(const uc* stream, int size)
 {
     stream = CNetMessage::decode(stream, size);
 
-    if (size > Max_NetMessageDataSize)
+    if (size > Max_NetMessageDataSize || !stream)
         return NULL;
 
     memcpy(data, stream, size);

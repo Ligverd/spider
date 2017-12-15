@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 #include "main.h"
+#include <stdarg.h>
 
 CSMPClient smp(0);
 
@@ -60,21 +61,43 @@ bool StrToLog(const char* str)
 {
     int fd;
     bool fret = true;
-    if ( (fd = open(Parser.sLogFile, O_RDWR | O_CREAT | O_APPEND , 0666 )) < 0)
+
+    if(!Parser.sLogFile)
+        return false;
+
+    if ((fd = open(Parser.sLogFile, O_RDWR | O_CREAT | O_APPEND , 0666 )) < 0)
     {
-        printf("Can't write to log file:%s\n",Parser.sLogFile);
+        printf("Can't write to log file:%s\n", Parser.sLogFile);
         return false;
     }
-    if(write(fd, str, strlen(str))<0)
-        fret = false;
+
+    if(write(fd, str, strlen(str)) < 0)
+    {
+        close(fd);
+        return false;
+    }
+
+    off_t flen = lseek(fd, 0, SEEK_CUR);
+
+    if(flen >= Parser.nLogFileSize * 1024 * 1024)
+    {
+        std::string name1(Parser.sLogFile);
+        std::string name2(Parser.sLogFile);
+        name1 += ".1";
+        name2 += ".2";
+        remove(name2.c_str());
+        rename(name1.c_str(), name2.c_str());
+        rename(Parser.sLogFile, name1.c_str());
+    }
+
     close(fd);
-    return fret;
+    return true;
 }
 
 void Loger(const char* str)
 {
     char time_str[22];
-    char logstr[128];
+    char logstr[1024];
     time_t itime;
     tm T;
     time (&itime);
@@ -85,16 +108,24 @@ void Loger(const char* str)
     StrToLog(logstr);
 }
 
-
+void Logerf(const char *format, ...)
+{
+    char buff[512];
+    va_list ap;
+    va_start(ap,format);
+    vsnprintf(buff, sizeof(buff), format, ap);
+    va_end(ap);
+    Loger(buff);
+}
 
 bool make_nonblock(int sock)
 {
     int sock_opt;
-    if((sock_opt = fcntl(sock, F_GETFL, O_NONBLOCK)) <0) 
+    if((sock_opt = fcntl(sock, F_GETFL, O_NONBLOCK)) < 0)
     {
         return false;
     }
-    if((sock_opt = fcntl(sock, F_SETFL, sock_opt | O_NONBLOCK)) <0)
+    if((sock_opt = fcntl(sock, F_SETFL, sock_opt | O_NONBLOCK)) < 0)
     {
         return false;
     }
@@ -129,7 +160,7 @@ int Login_ethernet(const char* ip, in_addr_t port)
     sock_addr.sin_family = AF_INET;
     sock_addr.sin_port = htons(port);
 
-    if( inet_aton(ip,&sock_addr.sin_addr) <0) 
+    if( inet_aton(ip,&sock_addr.sin_addr) < 0)
     {
         close(fd);
         Loger("Scomm ip error!\n"); 
@@ -152,21 +183,21 @@ int Login_ethernet(const char* ip, in_addr_t port)
     FD_SET(fd,&wset);
     rset = wset;
     int n;
-    if (connect(fd, (struct sockaddr *) &sock_addr, sizeof(sock_addr))<0)
+    if (connect(fd, (struct sockaddr *) &sock_addr, sizeof(sock_addr)) < 0)
     {
         if (errno != EINPROGRESS)
-        { 
+        {
             close(fd);
             printf("Connection to scomm Error!\n");
             return -1;
-        } 
+        }
         state = 1;
         printf("Connection in process...\n");
     }
     if (state) 
     {
         n = select(fd+1, &rset, &wset, NULL, &tout);
-        if( n<0 || (FD_ISSET(fd, &wset) && FD_ISSET(fd, &rset)) )
+        if( n < 0 || (FD_ISSET(fd, &wset) && FD_ISSET(fd, &rset)) )
         {
             close(fd);
             printf("Connection to scomm error!\n");
@@ -242,7 +273,7 @@ int Create_server_point(in_addr_t port)
         return -1;
     }
 
-    if (listen(fd,1) < 0)
+    if (listen(fd, 1) < 0)
     {
         close(fd);
         Loger("Listen spider server socket error!\n");
@@ -292,7 +323,7 @@ void WriteToTfsFile(const BYTE *buf, DWORD len)
             return;
         }
 
-        if(write(fd, buf, len)<0)
+        if(write(fd, buf, len) < 0)
         {
             sprintf(log, "Can't write to file:%s\n",tfs_file_name);
             Loger(log);
@@ -325,17 +356,20 @@ void WriteMesToFiles(const CMonMessageEx& MonMes, const BYTE btMod)
     BYTE buff[sizeof(DWORD) + MonMessage_MaxMessageSize + sizeof(BYTE)];
     unsigned char *p = MonMes.encode(buff + sizeof(DWORD));
     DWORD size = p - buff - sizeof(DWORD);
-    memcpy(buff, &size, sizeof(DWORD));
-    memcpy(buff+size+sizeof(DWORD), &btMod, sizeof(BYTE));
+    memcpy(buff + size + sizeof(DWORD), &btMod, sizeof(BYTE));
+
+    DWORD iLen = size + 1;
+    memcpy(buff, &iLen, sizeof(DWORD));
 
     for (int i = 0; i < MAX_CLIENT; i++)
     {
-        char log[64];
+        char log[100];
         if(Client_fd[i])
         {
             struct timeval tv;
             fd_set wset;
             int retval;
+            int count = 0;
             do 
             {
                 tv.tv_sec = 1;
@@ -344,15 +378,12 @@ void WriteMesToFiles(const CMonMessageEx& MonMes, const BYTE btMod)
                 FD_SET(Client_fd[i], &wset);
                 if ((retval = select(Client_fd[i] + 1, NULL, &wset, NULL, &tv)) > 0) 
                 {
-                    int ERROR=-1;
+                    int ERROR = -1;
                     socklen_t opt_size = sizeof(ERROR);
                     getsockopt(Client_fd[i],SOL_SOCKET,SO_ERROR,&ERROR,&opt_size);
                     if(ERROR == 0)
                     {
-                        DWORD iLen = size + 1;
-                        write(Client_fd[i], &iLen, sizeof(DWORD));
-                        write(Client_fd[i], buff + sizeof(DWORD) , iLen);
-                        //write(Client_fd, &btMod , sizeof(BYTE));
+                        write(Client_fd[i], buff, sizeof(DWORD) + iLen);
                     }
                     else
                     {
@@ -371,20 +402,23 @@ void WriteMesToFiles(const CMonMessageEx& MonMes, const BYTE btMod)
                     Loger(log);
                     break;
                 }
-            } while(retval<=0);
+                count++;
+            } while (retval < 0 && count < 2);
         }
     }
 
     char tmp_str[1000];
     MonMes.monMessageToText(tmp_str, 1000);
     strcat(tmp_str,"\r\n");
+
+    memcpy(buff, &size, sizeof(DWORD));
     if(Parser.rotation != ROTATION_REALTIME)
     {
         get_file_names();
         WriteToTfsFile(buff, sizeof(DWORD) + size);
         WriteToTxtFile(tmp_str);
     }
-    printf("%s",tmp_str);
+    printf("%s", tmp_str);
 }
 
 
@@ -738,6 +772,7 @@ void OnMessage(CSMPMessage *mes)
                 switch (net.nMessage)
                 {
                     case NET_MES_MONITOR:
+                    {
                         if(mas_mod[net.src.nMod] >= 3)
                             EventModuleUp(net.src.nMod);
                         mas_mod[net.src.nMod] = 0;
@@ -749,7 +784,7 @@ void OnMessage(CSMPMessage *mes)
 					   }
 					   CMonMessageEx MonMes(0);
 					   unsigned char *p = MonMes.decode(net.data, net.dataSize);
-					   if (p) 
+					   if (p)
 					   {
                             WriteMesToFiles(MonMes, net.src.nMod);
                         }
@@ -757,7 +792,15 @@ void OnMessage(CSMPMessage *mes)
 					    {
 						  Loger("Error decode MonMessageEx!\n");
                         }
+                    }
                     break;
+
+                    default:
+                    {
+//                        printf("unsupported mes %x message %x module %d\n", mes->mes,
+//                            net.nMessage, net.src.nMod);
+                    }
+
                 }
             }
      }
@@ -841,7 +884,7 @@ void *Server_ptread(void* arg)
     struct sockaddr_in client_addr;
     socklen_t client_addr_size = sizeof(client_addr);
     int retval;
-    int i,maxfd;
+    int i, maxfd;
     while(1)
     {
         tv.tv_sec = 1;
@@ -923,40 +966,40 @@ void *Server_ptread(void* arg)
     return(NULL);
 }
 
+
 int main(int argc, char *argv[])
 {
+
     if (Parser.ParseCStringParams(argc, argv) < 0)
-    {
-        exit(1);
-    }
+        return 1;
 
-    printf("<-------------------------------Spider v2.2---------------------------->\n");
+    Logerf("<-------------------------------Spider v%s---------------------------->\n", VERSION);
     if (Parser.FillMainParams() < 0)
-    {
-        exit(1);
-    }
-    printf("<---------------------------------------------------------------------->\n");
+        return 1;
 
-    StrToLog("Spider started....\n");
+    Loger("<---------------------------------------------------------------------->\n");
 
     if(Parser.rotation != ROTATION_REALTIME)
     {
         get_file_names();
+        int fd_tmp;
 
         char log[200];
-        if (open(tfs_file_name, O_RDWR | O_CREAT | O_APPEND , 0666 ) < 0)
+        if ((fd_tmp = open(tfs_file_name, O_RDWR | O_CREAT | O_APPEND , 0666 )) < 0)
         {
-        sprintf(log,"Can't open file:%s!\n",tfs_file_name);
-        Loger(log);
-        exit(1);
+            sprintf(log, "Can't open file:%s!\n", tfs_file_name);
+            Loger(log);
+            exit(1);
         }
+        close(fd_tmp);
 
-        if (open(txt_file_name, O_RDWR | O_CREAT | O_APPEND , 0666 ) < 0)
+        if ((fd_tmp = open(txt_file_name, O_RDWR | O_CREAT | O_APPEND , 0666 )) < 0)
         {
-        sprintf(log,"Can't open file:%s!\n",txt_file_name);
-        Loger(log);
-        exit(1);
+            sprintf(log, "Can't open file:%s!\n", txt_file_name);
+            Loger(log);
+            exit(1);
         }
+        close(fd_tmp);
     }
 
     if( (Server_fd = Create_server_point(Parser.ServerPort)) <0) 
@@ -965,10 +1008,8 @@ int main(int argc, char *argv[])
         Server_fd = 0;
     }
 
-    for( int i = 0; i < MAX_CLIENT ;i++ )
-    {
+    for( int i = 0; i < MAX_CLIENT; i++ )
         Client_fd[i] = 0;
-    }
 
     timerA = timerB = timerC = -1;
     runTimerA = false;
@@ -982,10 +1023,7 @@ int main(int argc, char *argv[])
         daemon(0,0);
 
     while((Scomm_fd = Login_ethernet(Parser.sScommIp, Parser.ScommPort)) < 0)
-    {
-        sleep(5);
-    }
-
+         sleep(5);
 
     EventSpiderStart();
     EventSpiderInfo();
@@ -1024,8 +1062,8 @@ int main(int argc, char *argv[])
     time_t UpdateT1, UpdateT2;
     time (&UpdateT1);
 
-   while (1)
-   {
+    while (1)
+    {
         tv.tv_sec = 1;
         tv.tv_usec = 0;
         FD_ZERO(&fds);
@@ -1042,8 +1080,8 @@ int main(int argc, char *argv[])
             {
                 if (!size || (size < 0 && errno != EINTR))
                 {
-                     Loger("Scomm socket closed!\n");
-                     smp.OnClose();
+                    Loger("Scomm socket closed!\n");
+                    smp.OnClose();
                 }
             }
         }
@@ -1060,16 +1098,16 @@ int main(int argc, char *argv[])
         }
 
         if (runTimerA) {
-           runTimerA = false;
-           timer_a();
+        runTimerA = false;
+        timer_a();
         }
         if (runTimerB) {
-           runTimerB = false;
-           timer_b();
+        runTimerB = false;
+        timer_b();
         }
         if (runTimerC) {
-           runTimerC = false;
-           timer_c();
+        runTimerC = false;
+        timer_c();
         }
         if(Parser.nTimeUpdateMin)
         {
@@ -1092,6 +1130,6 @@ int main(int argc, char *argv[])
                 smp.SendPacket(buf, p-buf);
             }
         }
-  }
-   return EXIT_SUCCESS;
+    }
+    return EXIT_SUCCESS;
 }
