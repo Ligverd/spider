@@ -1,5 +1,3 @@
-#include "parse.h"
-#include <string.h>
 #include "main.h"
 
 CParser::CParser()
@@ -12,6 +10,7 @@ CParser::CParser()
     in_addr_t ScommPort = 10001;
     in_addr_t ServerPort = 0;
     rotation = 1;
+    nTimeUpdateMin = 0;
     fDaemon = false;
 }
 
@@ -227,6 +226,17 @@ int CParser::ParseCStringParams (int argc, char *argv[])
                 }
             }
         }
+        else if(!strcmp(argv[i],"-timeupdate"))
+        {
+            i++;
+            if (i < argc)
+            {
+                if (CheckDec(argv[i]))
+                {
+                    nTimeUpdateMin = atoi(argv[i]);
+                }
+            }
+        }
         else if(!strcmp(argv[i],"-d"))
         {
             fDaemon = true;
@@ -323,6 +333,11 @@ int CParser::FillMainParams (void)
         strcat(sLogFile,"/spider.log");
     }
     printf("Logfile:%s\n", sLogFile);
+
+    if(nTimeUpdateMin)
+    {
+        printf("TimeUpdate:%u min\n", nTimeUpdateMin);
+    }
 
     if (fDaemon) printf("Daemon mode!\n");
     return 1;

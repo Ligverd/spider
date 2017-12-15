@@ -27,6 +27,8 @@ const   unsigned char   MON_SPIDER_TCP_DOWN         =  6;   // time:TClock
 const   unsigned char   MON_SPIDER_USER_STOP        =  7;   // time:TClock
 const   unsigned char   MON_SPIDER_INFO             =  8;   // OSver:DWORD  SPIDERver:DWORD time:TClock
 const   unsigned char   MON_SPIDER_INFO_EX          =  9;   // OSver:String SPIDERver:DWORD time:TClock
+const   unsigned char   MON_SPIDER_BAD_PACKET       = 60;   // time:TClock
+const   unsigned char   MON_SPIDER_GATE_LOST		= 61;   // module:BYTE time:TClock
 // от портов
 const   unsigned char   MON_SEIZURE                 = 10;   // sig:BYTE module:BYTE slot/pcm:BYTE hole/ki:BYTE number:STRING aon:STRING
 const   unsigned char   MON_NUMBER                  = 11;   // number:STRING aon:STRING // здесь же будет ДВО

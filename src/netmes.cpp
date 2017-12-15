@@ -75,7 +75,7 @@ bool CNetSetPoint::CheckIndex(short ind)
 }
 
 
-#if defined(ARM) || defined(WIN32) || defined(__GNUC__)
+#if defined(__GNUC__) || defined(WIN32)
 
 //
 const uc* CNetMessage::decode(const uc* stream, int& size)
@@ -146,6 +146,22 @@ uc* CNetMessageBody::encode(uc* stream)
 
     memcpy(stream, data, dataSize);
     stream += dataSize;
+
+    return stream;    
+}
+
+//added by pax for timeupdate
+const uc* CNetMessageBody::input(const uc* stream, int size)
+{
+    if(!stream)
+        return NULL;
+
+    if (size > Max_NetMessageDataSize)
+        return NULL;
+
+    memcpy(data, stream, size);
+    dataSize = size;
+    stream += size;
 
     return stream;    
 }

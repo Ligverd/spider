@@ -18,14 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include "main.h"
-#include <netinet/tcp.h>
-#include <pthread.h>
-#include <wait.h>
 
 CSMPClient smp(0);
 
@@ -60,7 +53,7 @@ CParser Parser;
 
 void get_time_str(char* tm_str, tm T)
 {
-    sprintf(tm_str,"[%02d-%02d-%04d %02d:%02d:%02d]",T.tm_mday,T.tm_mon,(T.tm_year+1900),T.tm_hour,T.tm_min,T.tm_sec);
+    sprintf(tm_str,"[%02d-%02d-%04d %02d:%02d:%02d]",T.tm_mday,T.tm_mon+1,(T.tm_year+1900),T.tm_hour,T.tm_min,T.tm_sec);
 }
 
 bool StrToLog(const char* str)
@@ -150,7 +143,7 @@ int Login_ethernet(const char* ip, in_addr_t port)
     }
     memcpy(&sock_addr.sin_addr, host->h_addr_list[0], sizeof(sock_addr.sin_addr));
 
-    int state;
+    int state = 0;
     struct timeval tout;
     tout.tv_sec = 20;
     tout.tv_usec = 0;
@@ -235,6 +228,7 @@ int Create_server_point(in_addr_t port)
         Loger("Can't set spider server socket option TCP_KEEPINTVL!\n");
     }
 #endif
+
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -610,8 +604,12 @@ void EventSpiderInfo(void)
     CMonMessageEx MonMes(MON_SPIDER_INFO_EX);
 
     char OS[100];
+#ifdef FREE_BSD
+    strcpy(OS,"FREE_BSD");
+#else
     if(Uname(OS, 100)<0)
         strcpy(OS,"Linux");
+#endif
     DWORD dwSPIDERver = 0x02000000;
 
     MonMes.addParameterString(OS);
@@ -932,7 +930,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    printf("<-------------------------------Spider v2.0---------------------------->\n");
+    printf("<-------------------------------Spider v2.2---------------------------->\n");
     if (Parser.FillMainParams() < 0)
     {
         exit(1);
@@ -1022,6 +1020,10 @@ int main(int argc, char *argv[])
     struct timeval tv;
     fd_set fds;
     int retval;
+
+    time_t UpdateT1, UpdateT2;
+    time (&UpdateT1);
+
    while (1)
    {
         tv.tv_sec = 1;
@@ -1068,6 +1070,27 @@ int main(int argc, char *argv[])
         if (runTimerC) {
            runTimerC = false;
            timer_c();
+        }
+        if(Parser.nTimeUpdateMin)
+        {
+            time(&UpdateT2);
+            if((UpdateT2 - UpdateT1)/60 >= Parser.nTimeUpdateMin)
+            {
+                UpdateT1 = UpdateT2;
+                tm T;
+                localtime_r(&UpdateT1,&T);
+                char str[50];
+                sprintf(str,"settime %d %d %d %d %d %d",T.tm_mday,T.tm_mon+1,(T.tm_year+1900),T.tm_hour,T.tm_min,T.tm_sec);
+
+                CNetMessageBody xmes;
+                xmes.fillWide(0);//mes->dst.nVir = 0x55;
+                xmes.nMessage = NET_MES_TERMINALSTRING;
+                xmes.input((const uc *)str, strlen(str) + 1);
+
+                uc buf[sizeof(CNetMessageBody)];
+                uc* p = xmes.encode(buf);
+                smp.SendPacket(buf, p-buf);
+            }
         }
   }
    return EXIT_SUCCESS;

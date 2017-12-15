@@ -1,21 +1,6 @@
 #ifndef _CLIENT_H
 #define _CLIENT_H
 
-#include <netdb.h>
-#include <stdio.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <termios.h>
-#include <string.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <sys/time.h>
-#include <errno.h>
-
-
 #include "include/type.h"
 
 #define WM_COMMAND 0x100

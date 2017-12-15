@@ -168,7 +168,7 @@ public:
         } multi;
     } un;
 
-#if defined(__GNUC__) || defined(WIN32)
+#if || defined(__GNUC__) || defined(WIN32)
     CNetMessage() {
         memset(this, 0x00, sizeof(*this));
     }
@@ -186,7 +186,7 @@ public:
     void fillNear(TModule srcModule);
 };
 
-#if defined(__GNUC__) || defined(WIN32)
+#if || defined(__GNUC__) || defined(WIN32)
 const   int     Max_NetMessageDataSize =  2*100 + sizeof(BYTE) + sizeof(TCallID) + sizeof(BYTE);
 class  CNetMessageBody : public CNetMessage 
 {

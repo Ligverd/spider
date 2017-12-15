@@ -328,6 +328,21 @@ bool  CMonMessageEx::monMessageToText(char* pTextBuffer, int iTextBufferSize) co
                 pClock->Date, pClock->Month, pClock->Year, pClock->Hours, pClock->Minutes, pClock->Seconds);
         }
         break;
+    case MON_SPIDER_BAD_PACKET:
+        {
+            const TClock* pClock = getParameterTimePtr(readPos);
+            sprintf(sInfo, "SPIDER_BAD_PACKET   [%02d-%02d-20%02d %02d:%02d:%02d]",
+                pClock->Date, pClock->Month, pClock->Year, pClock->Hours, pClock->Minutes, pClock->Seconds);
+        }
+        break;
+    case MON_SPIDER_GATE_LOST:
+        {
+            BYTE btMod=getParameterByte(readPos);
+            const TClock* pClock = getParameterTimePtr(readPos);
+            sprintf(sInfo, "SPIDER_GATE_LOST    [%02d-%02d-20%02d %02d:%02d:%02d]  mod:%02d",
+                pClock->Date, pClock->Month, pClock->Year, pClock->Hours, pClock->Minutes, pClock->Seconds, btMod);
+        }
+        break;
     case MON_SPIDER_USER_STOP:
         {
             const TClock* pClock = getParameterTimePtr(readPos);

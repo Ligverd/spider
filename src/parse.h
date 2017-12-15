@@ -32,6 +32,7 @@ public:
     in_addr_t ServerPort;
     int rotation;
     bool fDaemon;
+    unsigned int nTimeUpdateMin;
     int ParseCStringParams (int argc, char *argv[]);
     int FillMainParams (void);
     CParser();

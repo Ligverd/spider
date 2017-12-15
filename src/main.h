@@ -17,12 +17,26 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
-#include <iostream.h>
+//#define FREE_BSD 1
+
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
-#include <signal.h>
 #include <sys/time.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <errno.h>
+#include <netinet/tcp.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <pthread.h>
+
+#ifdef FREE_BSD
+    #include <sys/wait.h>
+#else
+    #include <wait.h>
+#endif
 
 #ifdef FREE_BSD
 #include <sys/types.h>
@@ -33,7 +47,6 @@
 #define TCP_KEEPIDLE TCPCTL_KEEPIDLE
 #define TCP_KEEPINTVL TCPCTL_KEEPINTVL
 #endif
-
 
 #include "client.h"
 #include "include/type.h"

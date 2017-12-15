@@ -5,11 +5,7 @@
     #include  <memory.h>
 #else
     #ifdef __GNUC__
-        #ifdef ARMLINUX
-            #define ARM
-            #define __ARM__
-        #endif
-        #include  <string.h>
+        #define _ATS_
     #else
         #define _WIN_
     #endif

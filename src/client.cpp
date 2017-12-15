@@ -1,11 +1,3 @@
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-
-#include "client.h"
-#include "include/netmes.h"
 #include "main.h"
 
 CSMPClient::CSMPClient (DWORD _idc_back)

@@ -196,6 +196,7 @@ const   TUniPar UNIPAR_ISUP_ContinuityIndicators            = 0x78;
 const   TUniPar UNIPAR_ISUP_KhazahTarifZone                 = 0x79;
 const   TUniPar UNIPAR_ISUP_CallReference                   = 0x7A;
 const   TUniPar UNIPAR_ISUP_ApplicationTransport            = 0x7B;
+const   TUniPar UNIPAR_CUGInterlockCode                     = 0x7C;
 
 // Интелект. маршрутизация
 const   TUniPar UNIPAR_INTELROUTE_PATH                      = 0x80;
@@ -254,6 +255,7 @@ const   unsigned char   DVOCode_CP                  = 0x32;     // Call pickup
 const   unsigned char   DVOCode_CC                  = 0x33;     // Consultation call
 // жоп-коды испоьзуюься например в сорм для отложенных операций
 //const   unsigned char   DVOCode_CWworked            = 0xF8;     //  Третий вызов в паре CW
+const   unsigned char   DVOCode_SerialCall          = 0xF8;     // переадресованный вызов с серийника
 const   unsigned char   DVOCode_3PTYcall1           = 0xF9;     //
 const   unsigned char   DVOCode_3PTYcall2           = 0xFA;     //
 const   unsigned char   DVOCode_3PTYpreRelease      = 0xFB;     //
