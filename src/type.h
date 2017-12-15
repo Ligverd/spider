@@ -2,6 +2,7 @@
 #define __TYPE_H__
 
 #include  <string.h>
+#include  <stdint.h>
 
 #define DEV_NONE 0
 #define DEV_MAL  1
@@ -20,8 +21,8 @@
 
 #define NOP5 { __asm("nop"); __asm("nop"); __asm("nop"); __asm("nop"); __asm("nop"); }
 
-typedef unsigned long   DWORD ; // 32
-typedef unsigned short  WORD  ; // 16
+typedef uint32_t        DWORD ; // 32
+typedef uint16_t        WORD  ; // 16
 typedef unsigned char   BYTE  ; //  8
 typedef unsigned char   uc;
 

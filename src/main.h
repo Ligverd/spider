@@ -31,6 +31,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #ifdef FREE_BSD
     #include <sys/wait.h>
